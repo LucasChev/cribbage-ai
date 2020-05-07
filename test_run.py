@@ -3,9 +3,7 @@ from card import card
 
 def assert_mark_run(arg,exp,name):
     res = mark_run(arg)
-    if res != exp:
-        raise ValueError('Failed %s. Expected %d but got %d'%(name,exp,res))
-    return
+    assert res == exp, ('Failed %s. Expected %d but got %d'%(name,exp,res))
 
 def test_run_135():
     arg = [card(x) for x in [0,2,4]]
