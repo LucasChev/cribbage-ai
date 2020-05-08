@@ -23,10 +23,14 @@ def test_pairs_2225():
 
 def test_pairs_22225555():
     arg = [card(x) for x in [1,1+13,1+26,1+39,4,4+13,4+26,4+39]]
-    assert_mark_pair(arg,11,'test_pairs_22225555')
+    assert_mark_pair(arg,12,'test_pairs_22225555')
+
+def test_pairs_KQJ():
+    arg = [card(x) for x in [12,11,10]]
+    assert_mark_pair(arg,0,'test_pairs_KQJ')
 
 def test_mark_pair():
-    test_list = [test_pairs_255, test_pairs_22,test_pairs_2255,test_pairs_2225,test_pairs_22225555]
+    test_list = [test_pairs_255, test_pairs_22,test_pairs_2255,test_pairs_2225,test_pairs_22225555,test_pairs_KQJ]
     err_count = 0
     for test in test_list:
         try:

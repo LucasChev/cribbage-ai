@@ -40,35 +40,31 @@ def nub(hand,flip):
         return len([x for x in hand if x.get_id() == 10 and x.get_suit() == flip.get_suit()])
     return 0
 
-def score_hand(hand,flip,debug=False):
+def score_hand(hand, flip=None, debug=False):
     
     if debug:
         print('scoring hand: ',hand+[flip])
     
-    score = 0
-    
-    #fifteens
-    score += fifteens(hand+[flip])
+    if flip:
+        fifteen_score = fifteens(hand+[flip])
+        runs_score = runs(hand+[flip])
+        pairs_score = pairs(hand+[flip])
+        flush_score = flush(hand, flip)
+        nub_score = nub(hand,flip)
+    else:
+        fifteen_score = fifteens(hand)
+        runs_score = runs(hand)
+        pairs_score = pairs(hand)
+        flush_score = flush(hand)
+        nub_score = 0
+
+    total = fifteen_score + runs_score + pairs_score + flush_score + nub_score
+
     if debug:
-        print('after fifteens ', score)
-    #runs
-    score += runs(hand+[flip])
-    if debug:
-        print('after runs ', score)
-    #pairs
-    score += pairs(hand+[flip])
-    if debug:
-        print('after pairs ', score)
-    #flush
-    score += flush(hand, flip)
-    if debug:
-        print('after flush ', score)
-    #nub
-    score += nub(hand,flip)
-    if debug:
-        print('after nub ', score)
-    
-    return score
+        print('fifteens: %d,  runs: %d, pairs: %d, flush: %d,  nub: %d, total: %d'%
+            (fifteen_score, runs_score, pairs_score, flush_score, nub_score, total))
+
+    return total
 
 def mark_run(s):
     
@@ -92,9 +88,9 @@ def mark_run(s):
     return 0
 
 def mark_pair(s):
-    val = s[0].get_val()
+    val = s[0].get_id()
     for i in [4,3,2]:
-        if i == len([c for c in s[:i] if c.get_val() == val]):
+        if i == len([c for c in s[:i] if c.get_id() == val]):
             return 2*len(list(combinations(s[:i],2)))
     return 0
 
@@ -106,7 +102,7 @@ def handToStr(hand):
 
 def getValidIndex(hand):
     n=len(hand)
-    while(1):
+    while True:
         try:
             stdin = int(input("Pick a card to discard: %s   "%hand))
             if 0 <= stdin < n:
@@ -115,6 +111,18 @@ def getValidIndex(hand):
                 raise ValueError("bad index %d"%stdin)
         except Exception as e:
             print('caught: ',e)
+
+def getValidCard(hand, count, n=31):
+    while True:
+        try:
+            index = getValidIndex(hand)
+            if hand[index].get_val() <= 31 - count:
+                return index
+            else:
+                raise ValueError("Card value can be at most %d"%(31-count))
+        except ValueError as e:
+            print('caught: ',e)
+
             
 def no_valid_move(hand, count):
     return len(hand) == 0 or min(hand).get_val() > (31 - count)

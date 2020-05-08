@@ -10,7 +10,7 @@ ai_hand = []
 crib = []
 
 scores = [0,0]
-deal = 0
+ai_deal = 0
 
 while max(scores) < 121:
     
@@ -19,15 +19,29 @@ while max(scores) < 121:
         raise ValueError("deck len should be 52, [%d]"%len(deck))
 
     shuffle(deck)
-    player_hand = [deck.pop() for i in range(6)]
     ai_hand = [deck.pop() for i in range(6)]
-    deal ^= 1 # switch turns each time
+    ai_deal ^= 1 # switch turns each time
 
     ###### SELECT ######
-
-    #TODO implement AI behavior
+    print("%s's deal (crib belongs to %s)"%('AI' if ai_deal else 'Player','AI' if ai_deal else 'Player'))
+    # TODO: add memoization to prevent repeated scoring of duplicate hands
+    # AI strategy is to select the hand with the highest expected score for all possible flops
+    # Could be more sophisticated (endgame, crib min/max), but that's not quite the point of this project
+    max_score = -1
+    max_comb = []
     for comb in combinations(ai_hand,4):
-        score_hand(comb)
+        curr_score = 0
+        for i in range(len(deck)):
+            curr_score += score_hand(list(comb),deck[i])
+        # print("score for %s is %d"%(comb,curr_score))
+        if curr_score > max_score:
+            max_score = curr_score
+            max_comb = comb
+
+    player_hand = [deck.pop() for i in range(6)]
+
+
+    # print("hand was %s, best hand was %s with score %d"%(ai_hand,max_comb,max_score))
 
 
     crib = [ai_hand.pop(), ai_hand.pop()]
@@ -41,15 +55,14 @@ while max(scores) < 121:
     
     flop = deck.pop()
     if flop.get_id() == 10:
-        print("Counting nub for %s"%('Player' if deal==0 else 'AI'))
-        scores[deal] += 2
+        scores[ai_deal] += 2
+        print("%s: Counting nub for %s"%(scores, 'AI' if ai_deal else 'Player'))
         
     print("Flop is %s"%flop)
         
-        
-    ###### PLAY ######
 
-    p1_turn = deal
+    ###### PLAY ######
+    p1_turn = ai_deal
     count = flop.get_val()
     h1 = player_hand.copy()
     h2 = ai_hand.copy()
@@ -57,21 +70,21 @@ while max(scores) < 121:
     
     while len(h1) > 0 or len(h2) > 0:
         print("count=%d"%count)
+        player_str = "Player" if p1_turn else "AI"
         
         if no_valid_move(h1,count) and no_valid_move(h2,count):
-            print("%s played the last card, +%d point"%('Player' if p1_turn==0 else 'AI', 2 if count == 31 else 1))
             scores[p1_turn] += 2 if count == 31 else 1
+            print("%s: %s played the last card, +%d point"%(scores,'Player' if p1_turn==0 else 'AI', 2 if count == 31 else 1))
             count = 0
             stack = []
             continue
         
         c = None
-        
         if p1_turn:
             if no_valid_move(h1,count):
                 print("Player can't play")
             else:
-                index = getValidIndex(h1)
+                index = getValidCard(h1,count)
                 c = h1.pop(index)
         else:
             if no_valid_move(h2,count):
@@ -82,55 +95,69 @@ while max(scores) < 121:
                 h2.remove(c)
                 
         if c:
-            print("%s played card %s"%("Player" if p1_turn else "Opponent",c))
+            print("%s played card %s"%(player_str, c))
 
             count += c.get_val()
             stack.insert(0,c)
 
             if count == 15:
-                print("15 2: Counting 2 for %s"%('Player' if p1_turn else 'AI'))
                 scores[p1_turn^1] += 2
+                print("%s: 15 2: Counting 2 for %s"%(scores, player_str))
 
             pair = mark_pair(stack)
             if pair > 0:
-                print("pair: Counting %d for %s"%(pair,'Player' if p1_turn else 'AI'))
                 scores[p1_turn^1] += pair
+                print("%s: pair: Counting %d for %s"%(scores,pair, player_str))
 
             run = mark_run(stack)
             if run > 0:
-                print("run: Counting %d for %s"%(run,'Player' if p1_turn else 'AI'))
                 scores[p1_turn^1] += run
+                print("%s: run: Counting %d for %s"%(scores,run, player_str))
                 
         p1_turn ^= 1
     
-    print("%s played the last card, +%d point"%('Player' if p1_turn==0 else 'AI', 2 if count == 31 else 1))
     scores[p1_turn] += 2 if count == 31 else 1
+    print("%s: %s played the last card, +%d point"%(scores,'Player' if p1_turn==0 else 'AI', 2 if count == 31 else 1))
 
     print(scores)
 
     ###### SHOW ######
     print('Showing Cards')
-
     player_hand_score = score_hand(player_hand,flop)
     ai_hand_score = score_hand(ai_hand,flop)
     crib_score = score_hand(crib, flop)
 
-    print('%s hand contains %s, marking %d points'%(('Player',player_hand,player_hand_score) if deal else 
-                                                    ('AI',ai_hand,ai_hand_score)))
-    scores[deal^1] += player_hand_score if deal else ai_hand_score
 
-    if scores[deal^1] > 120:
+    if ai_deal:
+        print('Player hand contains %s, marking %d points'%(player_hand,player_hand_score))
+        scores[0] += player_hand_score
+    else:
+        print('%s hand contains %s, marking %d points'%(ai_hand,ai_hand_score))
+        scores[1] += ai_hand_score
+
+    if scores[ai_deal^1] > 120:
         break
 
-    print('%s hand contains %s, marking %d points'%(('AI',ai_hand,ai_hand_score) if deal else 
-                                                    ('Player',player_hand,player_hand_score)))
-    scores[deal] += ai_hand_score if deal else player_hand_score
+    if ai_deal:
+        print('AI hand contains %s, marking %d points'%(ai_hand,ai_hand_score))
+        print('AI crib contains %s, marking %d points'%(crib,crib_score))
+        scores[1] += ai_hand_score + crib_score
+    else:
+        print('Player hand contains %s, marking %d points'%(player_hand,player_hand_score))
+        print('Player crib contains %s, marking %d points'%(crib,crib_score))
+        scores[0] += player_hand_score + crib_score
 
-    print('%s crib contains %s, marking %d points'%('AI' if deal else 'Player',crib,crib_score))
-    scores[deal] += crib_score
 
     deck += player_hand + ai_hand + crib + [flop]
     player_hand = ai_hand = crib = None
     
     print(scores)
     
+## End while loop
+
+if score[0] > 120:
+    print("Player has won the game! Final score is %s"%score)
+elif score[1] > 120:
+    print("AI has won the game! Final score is %s"%score)
+else:
+    raise ValueError("Game ended with score %s"%score)
