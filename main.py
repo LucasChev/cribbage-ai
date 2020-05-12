@@ -91,7 +91,19 @@ while max(scores) < 121:
                 print("AI can't play")
             else:
                 # TODO: Implement naive strategy
-                c = min(h2)
+                max_score = -1
+                max_option = None
+                for card in h2:
+                    curr_score = mark_pair([card]+stack) + mark_run([card]+stack) + 2*int(count+card.get_val() == 15)
+                    # print("score for %s is %d"%(card,curr_score))
+                    if curr_score > max_score:
+                        max_score = curr_score
+                        max_option = card
+                
+                # print("hand was %s, best option was %s with score %d"%(h2,max_option,max_score))
+
+                c = max_option
+                print(c)
                 h2.remove(c)
                 
         if c:
@@ -129,22 +141,22 @@ while max(scores) < 121:
 
 
     if ai_deal:
-        print('Player hand contains %s, marking %d points'%(player_hand,player_hand_score))
+        print('Player hand contains %s, %s: marking %d points'%(flop,player_hand,player_hand_score))
         scores[0] += player_hand_score
     else:
-        print('%s hand contains %s, marking %d points'%(ai_hand,ai_hand_score))
+        print('AI hand contains %s, %s: marking %d points'%(flop,ai_hand,ai_hand_score))
         scores[1] += ai_hand_score
 
     if scores[ai_deal^1] > 120:
         break
 
     if ai_deal:
-        print('AI hand contains %s, marking %d points'%(ai_hand,ai_hand_score))
-        print('AI crib contains %s, marking %d points'%(crib,crib_score))
+        print('AI hand contains %s, %s: marking %d points'%(flop,ai_hand,ai_hand_score))
+        print('AI crib contains %s, %s: marking %d points'%(flop,crib,crib_score))
         scores[1] += ai_hand_score + crib_score
     else:
-        print('Player hand contains %s, marking %d points'%(player_hand,player_hand_score))
-        print('Player crib contains %s, marking %d points'%(crib,crib_score))
+        print('Player hand contains %s, %s: marking %d points'%(flop,player_hand,player_hand_score))
+        print('Player crib contains %s, %s: marking %d points'%(flop,crib,crib_score))
         scores[0] += player_hand_score + crib_score
 
 
